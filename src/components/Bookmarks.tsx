@@ -27,9 +27,18 @@ export default function Bookmarks({ userId }: { userId: string }) {
       .channel(`bookmarks-${userId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "bookmarks", filter: `user_id=eq.${userId}` },
-        () => {
-          fetchData();
+        { event: "INSERT", schema: "public", table: "bookmarks", filter: `user_id=eq.${userId}` },
+        (payload: any) => {
+          const row = payload.new as Bookmark;
+          setItems((prev) => [row, ...prev]);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "bookmarks", filter: `user_id=eq.${userId}` },
+        (payload: any) => {
+          const row = payload.old as { id: string };
+          setItems((prev) => prev.filter((b) => b.id !== row.id));
         }
       );
     channel.subscribe();
